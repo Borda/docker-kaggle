@@ -4,18 +4,16 @@ set -e
 usage() {
 cat << EOF
 Usage: $0 [OPTIONS]
-Build a new Python Docker image.
+Build a new Python TPU 1VM Docker image.
 
 Options:
-    -g, --gpu                 Build an image with GPU support.
     -c, --use-cache           Use layer cache when building a new image.
 EOF
 }
 
 CACHE_FLAG='--no-cache'
 DOCKERFILE='Dockerfile'
-ACCELERATOR='none'
-IMAGE_TAG='kaggle/python-build'
+IMAGE_TAG='kaggle/python-tpuvm-build'
 BUILD_ARGS=''
 
 while :; do
@@ -23,11 +21,6 @@ while :; do
         -h|--help)
             usage
             exit
-            ;;
-        -g|--gpu)
-            IMAGE_TAG='kaggle/python-gpu-build'
-            DOCKERFILE='gpu.Dockerfile'
-            ACCELERATOR='gpu'
             ;;
         -c|--use-cache)
             CACHE_FLAG=''
@@ -55,20 +48,10 @@ done
 
 readonly CACHE_FLAG
 readonly DOCKERFILE
-readonly ACCELERATOR
 readonly IMAGE_TAG
 readonly BUILD_ARGS
 
-DOCKERFILE_OUTDIR="${SRCDIR}/.generated"
-mkdir -p $DOCKERFILE_OUTDIR
-DOCKERFILE_PATH="$DOCKERFILE_OUTDIR/$DOCKERFILE"
-
-# Generate Dockerfile from template.
-echo "Generating Dockerfile from template..."
-docker run --rm -v $PWD:/input:ro gcr.io/kaggle-images/go-renderizer:latest --ACCELERATOR=$ACCELERATOR /input/Dockerfile.tmpl > $DOCKERFILE_PATH
-echo "==================== $DOCKERFILE START ===================="
-cat $DOCKERFILE_PATH
-echo "==================== $DOCKERFILE  END  ===================="
+DOCKERFILE_PATH="$SRCDIR/$DOCKERFILE"
 
 set -x
 docker build --rm --pull $CACHE_FLAG -t "$IMAGE_TAG" -f "$DOCKERFILE_PATH" $BUILD_ARGS .
